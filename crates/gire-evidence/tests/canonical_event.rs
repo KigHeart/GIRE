@@ -67,7 +67,7 @@ fn serialized_event_round_trips_and_retains_digest() {
 }
 
 #[test]
-fn payload_insertion_order_does_not_change_canonical_digest() {
+fn payload_insertion_order_produces_identical_canonical_payload_bytes() {
     let first = event(payload(&[
         ("a", serde_json::json!(1)),
         ("b", serde_json::json!(2)),
@@ -77,8 +77,8 @@ fn payload_insertion_order_does_not_change_canonical_digest() {
         ("a", serde_json::json!(1)),
     ]));
 
-    // Event identity is intentionally distinct, so compare the payload's
-    // canonical encoding rather than whole-event digests.
+    // Event identity is intentionally distinct, so compare canonical payload
+    // bytes rather than whole-event digests.
     let first_payload = serde_json::to_vec(&first.payload).expect("serialize payload");
     let second_payload = serde_json::to_vec(&second.payload).expect("serialize payload");
     assert_eq!(first_payload, second_payload);
