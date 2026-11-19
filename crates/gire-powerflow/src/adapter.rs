@@ -5,13 +5,13 @@
 //! authority.
 
 use crate::{
-    solve_radial, Complex64, ConstantPowerLoad, PowerFlowError, PowerFlowResult, RadialFeeder,
-    SeriesBranch, SolverOptions,
+    Complex64, ConstantPowerLoad, PowerFlowError, PowerFlowResult, RadialFeeder, SeriesBranch,
+    SolverOptions, solve_radial,
 };
 use gire_domain::{AssetId, FeederId, Phase, SwitchPosition, TerminalId};
 use gire_electrical::ElectricalParameterSet;
 use gire_equipment::EquipmentModel;
-use gire_network_validation::{validate_network, NetworkValidationError};
+use gire_network_validation::{NetworkValidationError, validate_network};
 use gire_operating_point::OperatingPoint;
 use gire_topology::{BranchKind, FeederTopology, Radiality, TopologySnapshot};
 use serde::{Deserialize, Serialize};
@@ -37,10 +37,7 @@ impl PreparedRadialFeeder {
         &self.feeder
     }
 
-    pub fn solve(
-        &self,
-        options: SolverOptions,
-    ) -> Result<ValidatedPowerFlowResult, AdapterError> {
+    pub fn solve(&self, options: SolverOptions) -> Result<ValidatedPowerFlowResult, AdapterError> {
         let result = solve_radial(&self.feeder, options).map_err(AdapterError::Solver)?;
         Ok(ValidatedPowerFlowResult {
             provenance: self.provenance,
@@ -78,8 +75,7 @@ pub fn prepare_radial_feeder(
         return Err(AdapterError::NetworkNotSolverEligible);
     }
 
-    let snapshot =
-        TopologySnapshot::build(topology).map_err(|_| AdapterError::InvalidTopology)?;
+    let snapshot = TopologySnapshot::build(topology).map_err(|_| AdapterError::InvalidTopology)?;
     let summary = snapshot
         .phase(phase)
         .ok_or(AdapterError::MissingPhase(phase))?;
