@@ -6,10 +6,16 @@
 
 use gire_domain::{AssetId, Phase, TerminalId};
 use serde::{Deserialize, Serialize};
-use std::{collections::{BTreeMap, BTreeSet}, fmt};
+use std::{
+    collections::{BTreeMap, BTreeSet},
+    fmt,
+};
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
-pub struct Substation { pub id: AssetId, pub name: String }
+pub struct Substation {
+    pub id: AssetId,
+    pub name: String,
+}
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct VoltageLevel {
@@ -37,7 +43,12 @@ pub struct Busbar {
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "snake_case")]
-pub enum WindingConnection { Wye, WyeGrounded, Delta, ZigZag }
+pub enum WindingConnection {
+    Wye,
+    WyeGrounded,
+    Delta,
+    ZigZag,
+}
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct TransformerWinding {
@@ -51,7 +62,10 @@ pub struct TransformerWinding {
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
-pub struct PhaseMapping { pub primary: Phase, pub secondary: Phase }
+pub struct PhaseMapping {
+    pub primary: Phase,
+    pub secondary: Phase,
+}
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct PowerTransformer {
@@ -78,7 +92,9 @@ impl EquipmentModel {
     /// Validates references and basic electrical invariants without repairing
     /// or defaulting missing data.
     pub fn validate(&self) -> Result<(), EquipmentError> {
-        if self.revision == 0 { return Err(EquipmentError::ZeroRevision); }
+        if self.revision == 0 {
+            return Err(EquipmentError::ZeroRevision);
+        }
 
         let mut asset_ids = BTreeSet::new();
         let mut substation_ids = BTreeSet::new();
@@ -86,7 +102,9 @@ impl EquipmentModel {
             if !asset_ids.insert(item.id) || !substation_ids.insert(item.id) {
                 return Err(EquipmentError::DuplicateAsset(item.id));
             }
-            if item.name.trim().is_empty() { return Err(EquipmentError::EmptyName(item.id)); }
+            if item.name.trim().is_empty() {
+                return Err(EquipmentError::EmptyName(item.id));
+            }
         }
 
         let mut voltage_ids = BTreeSet::new();
@@ -94,59 +112,103 @@ impl EquipmentModel {
             if !asset_ids.insert(level.id) || !voltage_ids.insert(level.id) {
                 return Err(EquipmentError::DuplicateAsset(level.id));
             }
-            if !level.nominal_voltage_volts.is_finite() || level.nominal_voltage_volts <= 0.0 {
+            if !level.nominal_voltage_volts.is_finite()
+                || level.nominal_voltage_volts <= 0.0
+            {
                 return Err(EquipmentError::InvalidNominalVoltage(level.id));
             }
             if !substation_ids.contains(&level.substation_id) {
-                return Err(EquipmentError::UnknownSubstation { asset: level.id, substation: level.substation_id });
+                return Err(EquipmentError::UnknownSubstation {
+                    asset: level.id,
+                    substation: level.substation_id,
+                });
             }
         }
 
         let mut terminal_ids = BTreeSet::new();
         for terminal in &self.terminals {
-            if !terminal_ids.insert(terminal.id) { return Err(EquipmentError::DuplicateTerminal(terminal.id)); }
+            if !terminal_ids.insert(terminal.id) {
+                return Err(EquipmentError::DuplicateTerminal(terminal.id));
+            }
             if !voltage_ids.contains(&terminal.voltage_level_id) {
-                return Err(EquipmentError::UnknownVoltageLevel { terminal: terminal.id, voltage_level: terminal.voltage_level_id });
+                return Err(EquipmentError::UnknownVoltageLevel {
+                    terminal: terminal.id,
+                    voltage_level: terminal.voltage_level_id,
+                });
             }
             validate_phases(terminal.equipment_id, &terminal.phases)?;
         }
-        let terminal_by_id: BTreeMap<_, _> = self.terminals.iter().map(|t| (t.id, t)).collect();
-        let voltage_by_id: BTreeMap<_, _> = self.voltage_levels.iter().map(|v| (v.id, v)).collect();
+        let terminal_by_id: BTreeMap<_, _> =
+            self.terminals.iter().map(|t| (t.id, t)).collect();
+        let voltage_by_id: BTreeMap<_, _> =
+            self.voltage_levels.iter().map(|v| (v.id, v)).collect();
 
         for busbar in &self.busbars {
-            if !asset_ids.insert(busbar.id) { return Err(EquipmentError::DuplicateAsset(busbar.id)); }
-            let level = voltage_by_id.get(&busbar.voltage_level_id)
-                .ok_or(EquipmentError::UnknownBusbarVoltageLevel { busbar: busbar.id, voltage_level: busbar.voltage_level_id })?;
-            if level.substation_id != busbar.substation_id { return Err(EquipmentError::SubstationMismatch(busbar.id)); }
-            let terminal = terminal_by_id.get(&busbar.terminal_id)
-                .ok_or(EquipmentError::UnknownEquipmentTerminal(busbar.terminal_id))?;
-            if terminal.equipment_id != busbar.id || terminal.voltage_level_id != busbar.voltage_level_id {
+            if !asset_ids.insert(busbar.id) {
+                return Err(EquipmentError::DuplicateAsset(busbar.id));
+            }
+            let level = voltage_by_id.get(&busbar.voltage_level_id).ok_or(
+                EquipmentError::UnknownBusbarVoltageLevel {
+                    busbar: busbar.id,
+                    voltage_level: busbar.voltage_level_id,
+                },
+            )?;
+            if level.substation_id != busbar.substation_id {
+                return Err(EquipmentError::SubstationMismatch(busbar.id));
+            }
+            let terminal = terminal_by_id
+                .get(&busbar.terminal_id)
+                .ok_or(EquipmentError::UnknownEquipmentTerminal(
+                    busbar.terminal_id,
+                ))?;
+            if terminal.equipment_id != busbar.id
+                || terminal.voltage_level_id != busbar.voltage_level_id
+            {
                 return Err(EquipmentError::TerminalOwnershipMismatch(busbar.id));
             }
         }
 
         for transformer in &self.transformers {
-            if !asset_ids.insert(transformer.id) { return Err(EquipmentError::DuplicateAsset(transformer.id)); }
+            if !asset_ids.insert(transformer.id) {
+                return Err(EquipmentError::DuplicateAsset(transformer.id));
+            }
             if transformer.vector_group_clock_hour > 11 {
-                return Err(EquipmentError::InvalidVectorGroupClock(transformer.id));
+                return Err(EquipmentError::InvalidVectorGroupClock(
+                    transformer.id,
+                ));
             }
             if !substation_ids.contains(&transformer.substation_id) {
-                return Err(EquipmentError::UnknownSubstation { asset: transformer.id, substation: transformer.substation_id });
+                return Err(EquipmentError::UnknownSubstation {
+                    asset: transformer.id,
+                    substation: transformer.substation_id,
+                });
             }
             for winding in [&transformer.primary, &transformer.secondary] {
-                if !asset_ids.insert(winding.id) { return Err(EquipmentError::DuplicateAsset(winding.id)); }
-                if !winding.rated_voltage_volts.is_finite() || winding.rated_voltage_volts <= 0.0 {
+                if !asset_ids.insert(winding.id) {
+                    return Err(EquipmentError::DuplicateAsset(winding.id));
+                }
+                if !winding.rated_voltage_volts.is_finite()
+                    || winding.rated_voltage_volts <= 0.0
+                {
                     return Err(EquipmentError::InvalidWindingVoltage(winding.id));
                 }
-                let terminal = terminal_by_id.get(&winding.terminal_id)
-                    .ok_or(EquipmentError::UnknownEquipmentTerminal(winding.terminal_id))?;
+                let terminal = terminal_by_id
+                    .get(&winding.terminal_id)
+                    .ok_or(EquipmentError::UnknownEquipmentTerminal(
+                        winding.terminal_id,
+                    ))?;
                 if terminal.equipment_id != transformer.id
                     || terminal.voltage_level_id != winding.voltage_level_id
-                    || terminal.phases != winding.phases {
+                    || terminal.phases != winding.phases
+                {
                     return Err(EquipmentError::WindingTerminalMismatch(winding.id));
                 }
-                let level = voltage_by_id.get(&winding.voltage_level_id)
-                    .ok_or(EquipmentError::UnknownVoltageLevel { terminal: winding.terminal_id, voltage_level: winding.voltage_level_id })?;
+                let level = voltage_by_id.get(&winding.voltage_level_id).ok_or(
+                    EquipmentError::UnknownVoltageLevel {
+                        terminal: winding.terminal_id,
+                        voltage_level: winding.voltage_level_id,
+                    },
+                )?;
                 if level.substation_id != transformer.substation_id {
                     return Err(EquipmentError::SubstationMismatch(transformer.id));
                 }
@@ -159,10 +221,17 @@ impl EquipmentModel {
 }
 
 fn validate_phases(asset: AssetId, phases: &[Phase]) -> Result<(), EquipmentError> {
-    if phases.is_empty() { return Err(EquipmentError::NoPhases(asset)); }
+    if phases.is_empty() {
+        return Err(EquipmentError::NoPhases(asset));
+    }
     let mut seen = BTreeSet::new();
     for phase in phases {
-        if !seen.insert(*phase) { return Err(EquipmentError::DuplicatePhase { asset, phase: *phase }); }
+        if !seen.insert(*phase) {
+            return Err(EquipmentError::DuplicatePhase {
+                asset,
+                phase: *phase,
+            });
+        }
     }
     Ok(())
 }
@@ -176,18 +245,32 @@ fn validate_phase_mapping(transformer: &PowerTransformer) -> Result<(), Equipmen
             || !transformer.primary.phases.contains(&mapping.primary)
             || !transformer.secondary.phases.contains(&mapping.secondary)
             || !primary_seen.insert(mapping.primary)
-            || !secondary_seen.insert(mapping.secondary) {
+            || !secondary_seen.insert(mapping.secondary)
+        {
             return Err(EquipmentError::InvalidPhaseMapping(transformer.id));
         }
     }
-    let primary_count = transformer.primary.phases.iter().filter(|p| matches!(p, Phase::A | Phase::B | Phase::C)).count();
-    let secondary_count = transformer.secondary.phases.iter().filter(|p| matches!(p, Phase::A | Phase::B | Phase::C)).count();
-    if transformer.phase_mapping.len() != primary_count || transformer.phase_mapping.len() != secondary_count {
+    let primary_count = transformer
+        .primary
+        .phases
+        .iter()
+        .filter(|p| matches!(p, Phase::A | Phase::B | Phase::C))
+        .count();
+    let secondary_count = transformer
+        .secondary
+        .phases
+        .iter()
+        .filter(|p| matches!(p, Phase::A | Phase::B | Phase::C))
+        .count();
+    if transformer.phase_mapping.len() != primary_count
+        || transformer.phase_mapping.len() != secondary_count
+    {
         return Err(EquipmentError::IncompletePhaseMapping(transformer.id));
     }
     Ok(())
 }
 
+/// Equipment-model validation failure.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum EquipmentError {
     ZeroRevision,
@@ -197,19 +280,35 @@ pub enum EquipmentError {
     InvalidNominalVoltage(AssetId),
     InvalidWindingVoltage(AssetId),
     InvalidVectorGroupClock(AssetId),
-    UnknownSubstation { asset: AssetId, substation: AssetId },
-    UnknownVoltageLevel { terminal: TerminalId, voltage_level: AssetId },
-    UnknownBusbarVoltageLevel { busbar: AssetId, voltage_level: AssetId },
+    UnknownSubstation {
+        asset: AssetId,
+        substation: AssetId,
+    },
+    UnknownVoltageLevel {
+        terminal: TerminalId,
+        voltage_level: AssetId,
+    },
+    UnknownBusbarVoltageLevel {
+        busbar: AssetId,
+        voltage_level: AssetId,
+    },
     UnknownEquipmentTerminal(TerminalId),
     SubstationMismatch(AssetId),
     TerminalOwnershipMismatch(AssetId),
     WindingTerminalMismatch(AssetId),
     NoPhases(AssetId),
-    DuplicatePhase { asset: AssetId, phase: Phase },
+    DuplicatePhase {
+        asset: AssetId,
+        phase: Phase,
+    },
     InvalidPhaseMapping(AssetId),
     IncompletePhaseMapping(AssetId),
 }
+
 impl fmt::Display for EquipmentError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result { write!(f, "invalid equipment model: {self:?}") }
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "invalid equipment model: {self:?}")
+    }
 }
+
 impl std::error::Error for EquipmentError {}
