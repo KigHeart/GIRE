@@ -41,9 +41,10 @@ pub struct NetworkValidationReport {
 impl NetworkValidationReport {
     pub fn is_solver_eligible(&self) -> bool {
         self.observations_solver_eligible
-            && self.load_assessments.iter().all(|item| {
-                item.status == LoadSupplyStatus::ConfirmedSupplied
-            })
+            && self
+                .load_assessments
+                .iter()
+                .all(|item| item.status == LoadSupplyStatus::ConfirmedSupplied)
     }
 }
 
@@ -56,9 +57,11 @@ pub fn validate_network(
     parameters: &ElectricalParameterSet,
     operating_point: &OperatingPoint,
 ) -> Result<NetworkValidationReport, NetworkValidationError> {
-    let snapshot = TopologySnapshot::build(topology)
-        .map_err(|_| NetworkValidationError::InvalidTopology)?;
-    equipment.validate().map_err(|_| NetworkValidationError::InvalidEquipment)?;
+    let snapshot =
+        TopologySnapshot::build(topology).map_err(|_| NetworkValidationError::InvalidTopology)?;
+    equipment
+        .validate()
+        .map_err(|_| NetworkValidationError::InvalidEquipment)?;
     if topology.revision != operating_point.topology_revision {
         return Err(NetworkValidationError::TopologyRevisionMismatch {
             topology: topology.revision,
@@ -72,10 +75,12 @@ pub fn validate_network(
         return Err(NetworkValidationError::EquipmentRevisionMismatch);
     }
     if operating_point.electrical_parameter_revision != parameters.revision {
-        return Err(NetworkValidationError::ElectricalParameterRevisionMismatch {
-            operating_point: operating_point.electrical_parameter_revision,
-            parameters: parameters.revision,
-        });
+        return Err(
+            NetworkValidationError::ElectricalParameterRevisionMismatch {
+                operating_point: operating_point.electrical_parameter_revision,
+                parameters: parameters.revision,
+            },
+        );
     }
     parameters
         .validate_against(equipment)
@@ -86,6 +91,28 @@ pub fn validate_network(
 
     validate_terminal_alignment(topology, equipment)?;
     validate_branch_parameter_coverage(topology, parameters)?;
+
+    // A confirmed island cannot have multiple independent voltage references,
+    // even when no load is currently recorded in that island.
+    for phase in [Phase::A, Phase::B, Phase::C] {
+        if let Some(summary) = snapshot.phase(phase) {
+            for component in &summary.components {
+                let source_count = operating_point
+                    .sources
+                    .iter()
+                    .filter(|source| {
+                        source.phase == phase && component.contains(&source.terminal_id)
+                    })
+                    .count();
+                if source_count > 1 {
+                    return Err(NetworkValidationError::MultipleSourcesInConfirmedIsland {
+                        terminal: component[0],
+                        phase,
+                    });
+                }
+            }
+        }
+    }
 
     let terminal_ids: BTreeSet<_> = topology.terminals.iter().map(|t| t.id).collect();
     for source in &operating_point.sources {
@@ -118,9 +145,7 @@ pub fn validate_network(
         let sources_in_component = operating_point
             .sources
             .iter()
-            .filter(|source| {
-                source.phase == load.phase && component.contains(&source.terminal_id)
-            })
+            .filter(|source| source.phase == load.phase && component.contains(&source.terminal_id))
             .count();
 
         let status = if sources_in_component == 1 {
@@ -164,9 +189,12 @@ fn validate_terminal_alignment(
     topology: &FeederTopology,
     equipment: &EquipmentModel,
 ) -> Result<(), NetworkValidationError> {
-    let equipment_terminals: BTreeMap<_, _> =
-        equipment.terminals.iter().map(|terminal| (terminal.id, terminal)).collect();
-    if topology.terminals.len() != equipment_terminals.len() {
+    let equipment_terminals: BTreeMap<_, _> = equipment
+        .terminals
+        .iter()
+        .map(|terminal| (terminal.id, terminal))
+        .collect();
+    if topology.terminals.len() > equipment_terminals.len() {
         return Err(NetworkValidationError::TerminalSetMismatch);
     }
     for terminal in &topology.terminals {
@@ -196,14 +224,20 @@ fn validate_branch_parameter_coverage(
                     .lines
                     .iter()
                     .find(|line| line.asset_id == branch.asset_id)
-                    .ok_or(NetworkValidationError::MissingLineParameters(branch.asset_id))?;
+                    .ok_or(NetworkValidationError::MissingLineParameters(
+                        branch.asset_id,
+                    ))?;
                 if !same_endpoints(line, branch.from_terminal, branch.to_terminal) {
                     return Err(NetworkValidationError::BranchParameterEndpointMismatch(
                         branch.asset_id,
                     ));
                 }
                 for phase in &branch.phases {
-                    if !line.conductors.iter().any(|conductor| conductor.phase == *phase) {
+                    if !line
+                        .conductors
+                        .iter()
+                        .any(|conductor| conductor.phase == *phase)
+                    {
                         return Err(NetworkValidationError::MissingLinePhaseParameters {
                             asset: branch.asset_id,
                             phase: *phase,
@@ -252,8 +286,14 @@ fn path_exists_including_unknown(
         {
             continue;
         }
-        adjacency.entry(branch.from_terminal).or_default().push(branch.to_terminal);
-        adjacency.entry(branch.to_terminal).or_default().push(branch.from_terminal);
+        adjacency
+            .entry(branch.from_terminal)
+            .or_default()
+            .push(branch.to_terminal);
+        adjacency
+            .entry(branch.to_terminal)
+            .or_default()
+            .push(branch.from_terminal);
     }
     let mut visited = BTreeSet::new();
     let mut queue = VecDeque::from([start]);
@@ -277,10 +317,16 @@ pub enum NetworkValidationError {
     InvalidEquipment,
     InvalidElectricalParameters,
     InvalidOperatingPoint,
-    TopologyRevisionMismatch { topology: u64, operating_point: u64 },
+    TopologyRevisionMismatch {
+        topology: u64,
+        operating_point: u64,
+    },
     TopologySnapshotMismatch,
     EquipmentRevisionMismatch,
-    ElectricalParameterRevisionMismatch { operating_point: u64, parameters: u64 },
+    ElectricalParameterRevisionMismatch {
+        operating_point: u64,
+        parameters: u64,
+    },
     TerminalSetMismatch,
     TerminalAssetMismatch(TerminalId),
     TerminalPhaseMismatch(TerminalId),
@@ -288,9 +334,15 @@ pub enum NetworkValidationError {
     MissingPhase(Phase),
     MissingLineParameters(AssetId),
     BranchParameterEndpointMismatch(AssetId),
-    MissingLinePhaseParameters { asset: AssetId, phase: Phase },
+    MissingLinePhaseParameters {
+        asset: AssetId,
+        phase: Phase,
+    },
     MissingTransformerParameters(AssetId),
-    MultipleSourcesInConfirmedIsland { terminal: TerminalId, phase: Phase },
+    MultipleSourcesInConfirmedIsland {
+        terminal: TerminalId,
+        phase: Phase,
+    },
 }
 
 impl fmt::Display for NetworkValidationError {

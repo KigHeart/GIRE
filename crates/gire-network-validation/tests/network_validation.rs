@@ -1,19 +1,19 @@
 use gire_domain::{
-    AssetId, EvidenceId, FeederId, MeasurementQuality, Phase, SourceId, SwitchPosition,
-    TerminalId, UnknownSwitchReason,
+    AssetId, EvidenceId, FeederId, MeasurementQuality, Phase, SourceId, SwitchPosition, TerminalId,
+    UnknownSwitchReason,
 };
 use gire_electrical::{
     ConductorElectricalData, ElectricalParameterSet, LineElectricalParameters,
     SeriesImpedancePerKm, ShuntAdmittancePerKm,
 };
 use gire_equipment::{EquipmentModel, EquipmentTerminal, Substation, VoltageLevel};
+use gire_network_validation::{LoadSupplyStatus, NetworkValidationError, validate_network};
 use gire_operating_point::{LoadPhase, OperatingPoint, SourcePhase};
 use gire_topology::{BranchKind, FeederTopology, NetworkBranch, NetworkTerminal};
-use gire_network_validation::{
-    validate_network, LoadSupplyStatus, NetworkValidationError,
-};
 
-fn fixture(switch_position: Option<SwitchPosition>) -> (
+fn fixture(
+    switch_position: Option<SwitchPosition>,
+) -> (
     FeederTopology,
     EquipmentModel,
     ElectricalParameterSet,
@@ -157,9 +157,9 @@ fn connected_line_with_matching_revisions_is_confirmed_supplied() {
 
 #[test]
 fn unknown_switch_produces_indeterminate_not_confirmed_supply() {
-    let (topology, equipment, parameters, point) = fixture(Some(
-        SwitchPosition::Unknown(UnknownSwitchReason::ConflictingEvidence),
-    ));
+    let (topology, equipment, parameters, point) = fixture(Some(SwitchPosition::Unknown(
+        UnknownSwitchReason::ConflictingEvidence,
+    )));
     let report = validate_network(&topology, &equipment, &parameters, &point).unwrap();
     assert_eq!(
         report.load_assessments[0].status,
@@ -170,8 +170,7 @@ fn unknown_switch_produces_indeterminate_not_confirmed_supply() {
 
 #[test]
 fn open_switch_produces_no_source_path() {
-    let (topology, equipment, parameters, point) =
-        fixture(Some(SwitchPosition::Open));
+    let (topology, equipment, parameters, point) = fixture(Some(SwitchPosition::Open));
     let report = validate_network(&topology, &equipment, &parameters, &point).unwrap();
     assert_eq!(
         report.load_assessments[0].status,
@@ -186,9 +185,7 @@ fn parameter_revision_must_match_operating_point() {
     point.electrical_parameter_revision = 5;
     assert!(matches!(
         validate_network(&topology, &equipment, &parameters, &point),
-        Err(NetworkValidationError::ElectricalParameterRevisionMismatch {
-            ..
-        })
+        Err(NetworkValidationError::ElectricalParameterRevisionMismatch { .. })
     ));
 }
 
@@ -212,4 +209,31 @@ fn suspect_observation_blocks_solver_eligibility_without_erasing_assessment() {
         LoadSupplyStatus::ConfirmedSupplied
     );
     assert!(!report.is_solver_eligible());
+}
+
+#[test]
+fn rejects_multiple_source_references_in_one_island_without_loads() {
+    let (topology, equipment, parameters, mut point) = fixture(None);
+    point.loads.clear();
+    let mut second_source = point.sources[0].clone();
+    second_source.source_id = SourceId::new();
+    second_source.terminal_id = topology.terminals[1].id;
+    point.sources.push(second_source);
+    assert!(matches!(
+        validate_network(&topology, &equipment, &parameters, &point),
+        Err(NetworkValidationError::MultipleSourcesInConfirmedIsland { .. })
+    ));
+}
+
+#[test]
+fn equipment_model_may_contain_terminals_outside_this_feeder() {
+    let (topology, mut equipment, parameters, point) = fixture(None);
+    equipment.terminals.push(EquipmentTerminal {
+        id: TerminalId::new(),
+        equipment_id: AssetId::new(),
+        voltage_level_id: equipment.voltage_levels[0].id,
+        phases: vec![Phase::A],
+    });
+    let report = validate_network(&topology, &equipment, &parameters, &point).unwrap();
+    assert!(report.is_solver_eligible());
 }
