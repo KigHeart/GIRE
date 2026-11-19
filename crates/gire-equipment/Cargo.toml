@@ -1,0 +1,10 @@
+[package]
+name = "gire-equipment"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+gire-domain = { path = "../gire-domain" }
+serde.workspace = true
