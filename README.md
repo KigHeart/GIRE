@@ -21,6 +21,8 @@ authority.
   transformer sequence parameters, validated against an equipment revision.
 - `gire-operating-point`: version-pinned per-phase source voltages, constant-P/Q
   load observations, and explicit transformer tap states with evidence quality.
+- `gire-network-validation`: cross-layer revision, terminal, parameter-coverage
+  and source-reachability validation; unknown-switch paths remain indeterminate.
 
 ## Development sequence
 

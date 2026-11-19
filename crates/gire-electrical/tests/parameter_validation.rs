@@ -118,6 +118,7 @@ fn valid_parameters(equipment: &EquipmentModel) -> ElectricalParameterSet {
         .collect();
 
     ElectricalParameterSet {
+        revision: 4,
         equipment_revision: equipment.revision,
         lines: vec![LineElectricalParameters {
             asset_id: line_id,

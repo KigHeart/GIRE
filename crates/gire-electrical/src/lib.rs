@@ -77,6 +77,8 @@ pub struct TransformerElectricalParameters {
 /// Complete parameter set for a specific equipment-model revision.
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct ElectricalParameterSet {
+    /// Independent revision of this complete parameter dataset.
+    pub revision: u64,
     pub equipment_revision: u64,
     pub lines: Vec<LineElectricalParameters>,
     pub transformers: Vec<TransformerElectricalParameters>,
@@ -94,6 +96,9 @@ impl ElectricalParameterSet {
         equipment
             .validate()
             .map_err(|_| ElectricalParameterError::InvalidEquipmentModel)?;
+        if self.revision == 0 {
+            return Err(ElectricalParameterError::ZeroParameterRevision);
+        }
         if self.equipment_revision == 0 || self.equipment_revision != equipment.revision {
             return Err(ElectricalParameterError::EquipmentRevisionMismatch {
                 parameters: self.equipment_revision,
@@ -255,6 +260,7 @@ fn validate_per_unit_impedance(
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ElectricalParameterError {
     InvalidEquipmentModel,
+    ZeroParameterRevision,
     EquipmentRevisionMismatch {
         parameters: u64,
         equipment: u64,

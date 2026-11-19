@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["crates/gire-domain", "crates/gire-evidence", "crates/gire-topology", "crates/gire-equipment", "crates/gire-electrical", "crates/gire-operating-point"]
+members = ["crates/gire-domain", "crates/gire-evidence", "crates/gire-topology", "crates/gire-equipment", "crates/gire-electrical", "crates/gire-operating-point", "crates/gire-network-validation"]
 
 [workspace.package]
 edition = "2024"
