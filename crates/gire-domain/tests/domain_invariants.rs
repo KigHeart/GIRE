@@ -39,7 +39,10 @@ fn stale_telemetry_cannot_assert_a_known_switch_position() {
         evidence_id: Some(EvidenceId::new()),
     };
 
-    assert_eq!(state.validate(), Err(DomainError::UnusableKnownSwitchQuality));
+    assert_eq!(
+        state.validate(),
+        Err(DomainError::UnusableKnownSwitchQuality)
+    );
 }
 
 #[test]
@@ -69,7 +72,10 @@ fn non_finite_measurements_are_rejected() {
         evidence_id: EvidenceId::new(),
     };
 
-    assert_eq!(measurement.validate(), Err(DomainError::NonFiniteMeasurement));
+    assert_eq!(
+        measurement.validate(),
+        Err(DomainError::NonFiniteMeasurement)
+    );
 }
 
 #[test]

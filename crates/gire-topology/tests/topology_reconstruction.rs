@@ -87,7 +87,9 @@ fn unknown_switch_is_not_assumed_open_or_closed() {
         a.id,
         b.id,
         BranchKind::Switch,
-        Some(SwitchPosition::Unknown(UnknownSwitchReason::ConflictingEvidence)),
+        Some(SwitchPosition::Unknown(
+            UnknownSwitchReason::ConflictingEvidence,
+        )),
     );
     let feeder = model(vec![a, b], vec![unknown_switch]);
 
@@ -122,7 +124,10 @@ fn known_cycle_is_reported_as_meshed() {
 fn unknown_terminal_reference_rejects_entire_model() {
     let a = terminal();
     let missing = TerminalId::new();
-    let feeder = model(vec![a.clone()], vec![branch(a.id, missing, BranchKind::Line, None)]);
+    let feeder = model(
+        vec![a.clone()],
+        vec![branch(a.id, missing, BranchKind::Line, None)],
+    );
 
     assert!(matches!(
         TopologySnapshot::build(&feeder),
@@ -169,7 +174,12 @@ fn isolated_terminals_are_preserved_as_components() {
     let snapshot = TopologySnapshot::build(&feeder).expect("valid topology");
     let summary = snapshot.phase(Phase::A).expect("phase A");
     assert_eq!(summary.components.len(), 2);
-    assert!(summary.components.iter().all(|component| component.len() == 1));
+    assert!(
+        summary
+            .components
+            .iter()
+            .all(|component| component.len() == 1)
+    );
 }
 
 #[test]

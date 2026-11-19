@@ -103,8 +103,11 @@ impl TopologySnapshot {
     pub fn build(model: &FeederTopology) -> Result<Self, TopologyError> {
         validate_model(model)?;
 
-        let terminals: BTreeMap<TerminalId, &NetworkTerminal> =
-            model.terminals.iter().map(|terminal| (terminal.id, terminal)).collect();
+        let terminals: BTreeMap<TerminalId, &NetworkTerminal> = model
+            .terminals
+            .iter()
+            .map(|terminal| (terminal.id, terminal))
+            .collect();
 
         let mut phases = Vec::with_capacity(CONDUCTORS.len());
         for phase in CONDUCTORS {
@@ -150,8 +153,11 @@ fn validate_model(model: &FeederTopology) -> Result<(), TopologyError> {
         }
     }
 
-    let terminal_map: BTreeMap<TerminalId, &NetworkTerminal> =
-        model.terminals.iter().map(|terminal| (terminal.id, terminal)).collect();
+    let terminal_map: BTreeMap<TerminalId, &NetworkTerminal> = model
+        .terminals
+        .iter()
+        .map(|terminal| (terminal.id, terminal))
+        .collect();
     let mut branch_ids = BTreeSet::new();
 
     for branch in &model.branches {
@@ -162,12 +168,13 @@ fn validate_model(model: &FeederTopology) -> Result<(), TopologyError> {
             return Err(TopologyError::SelfLoop(branch.asset_id));
         }
 
-        let from = terminal_map
-            .get(&branch.from_terminal)
-            .ok_or(TopologyError::UnknownTerminal {
-                branch: branch.asset_id,
-                terminal: branch.from_terminal,
-            })?;
+        let from =
+            terminal_map
+                .get(&branch.from_terminal)
+                .ok_or(TopologyError::UnknownTerminal {
+                    branch: branch.asset_id,
+                    terminal: branch.from_terminal,
+                })?;
         let to = terminal_map
             .get(&branch.to_terminal)
             .ok_or(TopologyError::UnknownTerminal {
@@ -330,13 +337,25 @@ pub enum TopologyError {
     ZeroRevision,
     DuplicateTerminal(TerminalId),
     TerminalHasNoPhases(TerminalId),
-    DuplicateTerminalPhase { terminal: TerminalId, phase: Phase },
+    DuplicateTerminalPhase {
+        terminal: TerminalId,
+        phase: Phase,
+    },
     DuplicateBranch(AssetId),
     SelfLoop(AssetId),
-    UnknownTerminal { branch: AssetId, terminal: TerminalId },
+    UnknownTerminal {
+        branch: AssetId,
+        terminal: TerminalId,
+    },
     BranchHasNoPhases(AssetId),
-    DuplicateBranchPhase { branch: AssetId, phase: Phase },
-    PhaseNotPresentAtBothTerminals { branch: AssetId, phase: Phase },
+    DuplicateBranchPhase {
+        branch: AssetId,
+        phase: Phase,
+    },
+    PhaseNotPresentAtBothTerminals {
+        branch: AssetId,
+        phase: Phase,
+    },
     SwitchPositionRequired(AssetId),
     UnexpectedSwitchPosition(AssetId),
 }
