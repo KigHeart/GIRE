@@ -8,3 +8,4 @@ repository.workspace = true
 
 [dependencies]
 gire-domain = { path = "../gire-domain" }
+serde.workspace = true
