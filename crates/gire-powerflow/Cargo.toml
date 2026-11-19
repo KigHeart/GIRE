@@ -8,4 +8,9 @@ repository.workspace = true
 
 [dependencies]
 gire-domain = { path = "../gire-domain" }
+gire-topology = { path = "../gire-topology" }
+gire-equipment = { path = "../gire-equipment" }
+gire-electrical = { path = "../gire-electrical" }
+gire-operating-point = { path = "../gire-operating-point" }
+gire-network-validation = { path = "../gire-network-validation" }
 serde.workspace = true
