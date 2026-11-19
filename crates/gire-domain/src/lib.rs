@@ -59,7 +59,7 @@ id_type!(EvidenceId);
 id_type!(SourceId);
 
 /// Electrical phase designation. Neutral is explicit and is not a phase.
-#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum Phase {
     A,

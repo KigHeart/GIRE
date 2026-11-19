@@ -1,0 +1,15 @@
+[package]
+name = "gire-topology"
+version = "0.1.0"
+description = "Deterministic, phase-aware feeder topology reconstruction for GIRE."
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+gire-domain = { path = "../gire-domain" }
+serde.workspace = true
+
+[dev-dependencies]
+serde_json.workspace = true
