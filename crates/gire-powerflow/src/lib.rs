@@ -4,6 +4,9 @@
 //! It does not infer topology, validate upstream evidence, model shunts,
 //! mutual coupling, transformers, neutral return, or issue equipment controls.
 //! Callers must perform those checks before invoking the solver.
+mod adapter;
+pub use adapter::{prepare_radial_feeder, AdapterError, PreparedRadialFeeder, PowerFlowProvenance, ValidatedPowerFlowResult};
+
 use gire_domain::TerminalId;
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
@@ -125,6 +128,10 @@ pub struct BranchResult {
     pub apparent_power_from_va: Complex64,
     pub apparent_power_to_va: Complex64,
     pub copper_loss_watts: f64,
+    /// Calculated RMS current as a percentage of continuous ampacity.
+    pub loading_percent: f64,
+    /// True when calculated RMS current exceeds continuous ampacity.
+    pub ampacity_exceeded: bool,
 }
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct PowerFlowResult {
@@ -134,6 +141,11 @@ pub struct PowerFlowResult {
     pub branches: Vec<BranchResult>,
 }
 impl PowerFlowResult {
+    /// Returns true if any branch exceeds its declared continuous ampacity.
+    pub fn has_ampacity_violations(&self) -> bool {
+        self.branches.iter().any(|branch| branch.ampacity_exceeded)
+    }
+
     pub fn terminal(&self, id: TerminalId) -> Option<&TerminalResult> {
         self.terminals.iter().find(|item| item.terminal_id == id)
     }
@@ -280,6 +292,8 @@ pub fn solve_radial(
             apparent_power_from_va: from_v * current.conjugate(),
             apparent_power_to_va: to_v * (-current).conjugate(),
             copper_loss_watts: current.magnitude().powi(2) * branch.resistance_ohms,
+            loading_percent: 100.0 * current.magnitude() / branch.continuous_ampacity_amperes,
+            ampacity_exceeded: current.magnitude() > branch.continuous_ampacity_amperes,
         });
     }
     Ok(PowerFlowResult {
