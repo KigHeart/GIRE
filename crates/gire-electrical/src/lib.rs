@@ -60,6 +60,115 @@ pub struct LineElectricalParameters {
     pub conductors: Vec<ConductorElectricalData>,
 }
 
+
+/// Complex series-impedance entry in ohms for a complete branch.
+#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
+pub struct ComplexImpedanceOhms {
+    pub resistance_ohms: f64,
+    pub reactance_ohms: f64,
+}
+
+/// Coupled four-conductor series impedance primitive.
+///
+/// Matrix order is fixed as [A, B, C, Neutral]. A false conductor-presence
+/// entry means that conductor is physically absent. Every matrix entry for
+/// a pair of present conductors must be supplied; absent pairs must be None.
+/// Reciprocity is complex symmetry (Z_ij = Z_ji), not Hermitian symmetry.
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+pub struct PhaseDomainImpedanceMatrix {
+    pub conductor_present: [bool; 4],
+    pub entries: [[Option<ComplexImpedanceOhms>; 4]; 4],
+    /// Continuous RMS ampacity in amperes, indexed [A, B, C, Neutral].
+    pub continuous_ampacity_amperes: [Option<f64>; 4],
+}
+
+impl PhaseDomainImpedanceMatrix {
+    /// Validates completeness, finiteness, reciprocity and conductor ratings.
+    ///
+    /// This is a structural/physical sanity check, not a proof of passivity or
+    /// positive-real behavior for a frequency-dependent cable model.
+    pub fn validate(&self, asset_id: AssetId) -> Result<(), ElectricalParameterError> {
+        if !self.conductor_present.iter().any(|present| *present) {
+            return Err(ElectricalParameterError::NoPhaseDomainConductors(asset_id));
+        }
+        for row in 0..4 {
+            for column in 0..4 {
+                let present = self.conductor_present[row] && self.conductor_present[column];
+                match (present, self.entries[row][column]) {
+                    (true, Some(value)) => {
+                        if !value.resistance_ohms.is_finite()
+                            || !value.reactance_ohms.is_finite()
+                            || (row == column && value.resistance_ohms < 0.0)
+                        {
+                            return Err(ElectricalParameterError::InvalidPhaseDomainEntry {
+                                equipment: asset_id,
+                                row,
+                                column,
+                            });
+                        }
+                        if let Some(reverse) = self.entries[column][row] {
+                            if !approximately_equal(value.resistance_ohms, reverse.resistance_ohms)
+                                || !approximately_equal(value.reactance_ohms, reverse.reactance_ohms)
+                            {
+                                return Err(ElectricalParameterError::NonReciprocalPhaseDomainMatrix {
+                                    equipment: asset_id,
+                                    row,
+                                    column,
+                                });
+                            }
+                        } else {
+                            return Err(ElectricalParameterError::MissingPhaseDomainEntry {
+                                equipment: asset_id,
+                                row,
+                                column,
+                            });
+                        }
+                    }
+                    (true, None) => {
+                        return Err(ElectricalParameterError::MissingPhaseDomainEntry {
+                            equipment: asset_id,
+                            row,
+                            column,
+                        });
+                    }
+                    (false, Some(_)) => {
+                        return Err(ElectricalParameterError::EntryForAbsentConductor {
+                            equipment: asset_id,
+                            row,
+                            column,
+                        });
+                    }
+                    (false, None) => {}
+                }
+            }
+        }
+        for index in 0..4 {
+            match (self.conductor_present[index], self.continuous_ampacity_amperes[index]) {
+                (true, Some(value)) if value.is_finite() && value > 0.0 => {}
+                (true, _) => {
+                    return Err(ElectricalParameterError::InvalidPhaseDomainAmpacity {
+                        equipment: asset_id,
+                        conductor: index,
+                    });
+                }
+                (false, Some(_)) => {
+                    return Err(ElectricalParameterError::AmpacityForAbsentConductor {
+                        equipment: asset_id,
+                        conductor: index,
+                    });
+                }
+                (false, None) => {}
+            }
+        }
+        Ok(())
+    }
+}
+
+fn approximately_equal(left: f64, right: f64) -> bool {
+    let scale = left.abs().max(right.abs()).max(1.0);
+    (left - right).abs() <= 1.0e-10 * scale
+}
+
 /// Transformer sequence impedances use the transformer rated-power and
 /// rated-voltage base defined in the associated equipment model.
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
@@ -301,6 +410,14 @@ pub enum ElectricalParameterError {
     },
     InvalidMagnetisingAdmittance(AssetId),
     InvalidTransformerBase(AssetId),
+
+    NoPhaseDomainConductors(AssetId),
+    MissingPhaseDomainEntry { equipment: AssetId, row: usize, column: usize },
+    EntryForAbsentConductor { equipment: AssetId, row: usize, column: usize },
+    InvalidPhaseDomainEntry { equipment: AssetId, row: usize, column: usize },
+    NonReciprocalPhaseDomainMatrix { equipment: AssetId, row: usize, column: usize },
+    InvalidPhaseDomainAmpacity { equipment: AssetId, conductor: usize },
+    AmpacityForAbsentConductor { equipment: AssetId, conductor: usize },
 }
 
 impl fmt::Display for ElectricalParameterError {
