@@ -160,6 +160,11 @@ name = "gire-powerflow"
 version = "0.1.0"
 dependencies = [
  "gire-domain",
+ "gire-electrical",
+ "gire-equipment",
+ "gire-network-validation",
+ "gire-operating-point",
+ "gire-topology",
  "serde",
 ]
 
