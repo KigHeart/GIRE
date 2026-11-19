@@ -101,13 +101,9 @@ impl ElectricalParameterSet {
             });
         }
 
-        let terminals: BTreeMap<_, _> =
-            equipment.terminals.iter().map(|t| (t.id, t)).collect();
-        let transformers: BTreeMap<_, _> = equipment
-            .transformers
-            .iter()
-            .map(|t| (t.id, t))
-            .collect();
+        let terminals: BTreeMap<_, _> = equipment.terminals.iter().map(|t| (t.id, t)).collect();
+        let transformers: BTreeMap<_, _> =
+            equipment.transformers.iter().map(|t| (t.id, t)).collect();
 
         let mut seen_assets = BTreeSet::new();
         for line in &self.lines {
@@ -135,7 +131,9 @@ impl ElectricalParameterSet {
                 || to.equipment_id != line.asset_id
                 || from.voltage_level_id != to.voltage_level_id
             {
-                return Err(ElectricalParameterError::LineTerminalMismatch(line.asset_id));
+                return Err(ElectricalParameterError::LineTerminalMismatch(
+                    line.asset_id,
+                ));
             }
             if line.conductors.is_empty() {
                 return Err(ElectricalParameterError::NoConductorData(line.asset_id));
@@ -148,9 +146,7 @@ impl ElectricalParameterSet {
                         phase: conductor.phase,
                     });
                 }
-                if !from.phases.contains(&conductor.phase)
-                    || !to.phases.contains(&conductor.phase)
-                {
+                if !from.phases.contains(&conductor.phase) || !to.phases.contains(&conductor.phase) {
                     return Err(ElectricalParameterError::ConductorPhaseNotAtBothTerminals {
                         equipment: line.asset_id,
                         phase: conductor.phase,
@@ -201,9 +197,7 @@ impl ElectricalParameterSet {
             // A rated-power base is not enough if the model's winding voltage
             // ratings do not agree with the equipment model's nominal levels.
             for winding in [&transformer.primary, &transformer.secondary] {
-                if !winding.rated_voltage_volts.is_finite()
-                    || winding.rated_voltage_volts <= 0.0
-                {
+                if !winding.rated_voltage_volts.is_finite() || winding.rated_voltage_volts <= 0.0 {
                     return Err(ElectricalParameterError::InvalidTransformerBase(id));
                 }
             }
@@ -260,20 +254,44 @@ fn validate_per_unit_impedance(
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ElectricalParameterError {
     InvalidEquipmentModel,
-    EquipmentRevisionMismatch { parameters: u64, equipment: u64 },
+    EquipmentRevisionMismatch {
+        parameters: u64,
+        equipment: u64,
+    },
     DuplicateEquipmentParameters(AssetId),
     InvalidLineLength(AssetId),
-    UnknownTerminal { equipment: AssetId, terminal: TerminalId },
+    UnknownTerminal {
+        equipment: AssetId,
+        terminal: TerminalId,
+    },
     LineTerminalMismatch(AssetId),
     NoConductorData(AssetId),
-    DuplicateConductorPhase { equipment: AssetId, phase: Phase },
-    ConductorPhaseNotAtBothTerminals { equipment: AssetId, phase: Phase },
-    InvalidSeriesImpedance { equipment: AssetId, phase: Phase },
-    InvalidShuntAdmittance { equipment: AssetId, phase: Phase },
-    InvalidAmpacity { equipment: AssetId, phase: Phase },
+    DuplicateConductorPhase {
+        equipment: AssetId,
+        phase: Phase,
+    },
+    ConductorPhaseNotAtBothTerminals {
+        equipment: AssetId,
+        phase: Phase,
+    },
+    InvalidSeriesImpedance {
+        equipment: AssetId,
+        phase: Phase,
+    },
+    InvalidShuntAdmittance {
+        equipment: AssetId,
+        phase: Phase,
+    },
+    InvalidAmpacity {
+        equipment: AssetId,
+        phase: Phase,
+    },
     UnknownTransformer(AssetId),
     InvalidTransformerRatedPower(AssetId),
-    InvalidSequenceImpedance { transformer: AssetId, sequence: &'static str },
+    InvalidSequenceImpedance {
+        transformer: AssetId,
+        sequence: &'static str,
+    },
     InvalidMagnetisingAdmittance(AssetId),
     InvalidTransformerBase(AssetId),
 }
