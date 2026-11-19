@@ -23,6 +23,8 @@ authority.
   load observations, and explicit transformer tap states with evidence quality.
 - `gire-network-validation`: cross-layer revision, terminal, parameter-coverage
   and source-reachability validation; unknown-switch paths remain indeterminate.
+- `gire-powerflow`: first single-phase radial backward/forward-sweep numerical
+  kernel with explicit series-only assumptions and convergence diagnostics.
 
 ## Development sequence
 
