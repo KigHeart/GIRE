@@ -26,6 +26,10 @@ authority.
 - `gire-powerflow`: first single-phase radial backward/forward-sweep numerical
   kernel with explicit series-only assumptions and convergence diagnostics.
 
+The next solver milestone is specified in [ADR-0008](docs/engineering/ADR-0008-phase-domain-unbalanced-power-flow.md).
+It requires a coupled phase-domain model; the existing single-phase kernel is
+not represented as a complete three-phase solver.
+
 ## Development sequence
 
 1. Typed domain model and evidence provenance.
