@@ -60,7 +60,6 @@ pub struct LineElectricalParameters {
     pub conductors: Vec<ConductorElectricalData>,
 }
 
-
 /// Complex series-impedance entry in ohms for a complete branch.
 #[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
 pub struct ComplexImpedanceOhms {
@@ -108,13 +107,18 @@ impl PhaseDomainImpedanceMatrix {
                         }
                         if let Some(reverse) = self.entries[column][row] {
                             if !approximately_equal(value.resistance_ohms, reverse.resistance_ohms)
-                                || !approximately_equal(value.reactance_ohms, reverse.reactance_ohms)
+                                || !approximately_equal(
+                                    value.reactance_ohms,
+                                    reverse.reactance_ohms,
+                                )
                             {
-                                return Err(ElectricalParameterError::NonReciprocalPhaseDomainMatrix {
-                                    equipment: asset_id,
-                                    row,
-                                    column,
-                                });
+                                return Err(
+                                    ElectricalParameterError::NonReciprocalPhaseDomainMatrix {
+                                        equipment: asset_id,
+                                        row,
+                                        column,
+                                    },
+                                );
                             }
                         } else {
                             return Err(ElectricalParameterError::MissingPhaseDomainEntry {
@@ -143,7 +147,10 @@ impl PhaseDomainImpedanceMatrix {
             }
         }
         for index in 0..4 {
-            match (self.conductor_present[index], self.continuous_ampacity_amperes[index]) {
+            match (
+                self.conductor_present[index],
+                self.continuous_ampacity_amperes[index],
+            ) {
                 (true, Some(value)) if value.is_finite() && value > 0.0 => {}
                 (true, _) => {
                     return Err(ElectricalParameterError::InvalidPhaseDomainAmpacity {
@@ -412,12 +419,34 @@ pub enum ElectricalParameterError {
     InvalidTransformerBase(AssetId),
 
     NoPhaseDomainConductors(AssetId),
-    MissingPhaseDomainEntry { equipment: AssetId, row: usize, column: usize },
-    EntryForAbsentConductor { equipment: AssetId, row: usize, column: usize },
-    InvalidPhaseDomainEntry { equipment: AssetId, row: usize, column: usize },
-    NonReciprocalPhaseDomainMatrix { equipment: AssetId, row: usize, column: usize },
-    InvalidPhaseDomainAmpacity { equipment: AssetId, conductor: usize },
-    AmpacityForAbsentConductor { equipment: AssetId, conductor: usize },
+    MissingPhaseDomainEntry {
+        equipment: AssetId,
+        row: usize,
+        column: usize,
+    },
+    EntryForAbsentConductor {
+        equipment: AssetId,
+        row: usize,
+        column: usize,
+    },
+    InvalidPhaseDomainEntry {
+        equipment: AssetId,
+        row: usize,
+        column: usize,
+    },
+    NonReciprocalPhaseDomainMatrix {
+        equipment: AssetId,
+        row: usize,
+        column: usize,
+    },
+    InvalidPhaseDomainAmpacity {
+        equipment: AssetId,
+        conductor: usize,
+    },
+    AmpacityForAbsentConductor {
+        equipment: AssetId,
+        conductor: usize,
+    },
 }
 
 impl fmt::Display for ElectricalParameterError {
