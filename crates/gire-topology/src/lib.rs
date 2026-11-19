@@ -379,7 +379,10 @@ impl fmt::Display for TopologyError {
                 write!(f, "branch {branch} repeats phase {phase:?}")
             }
             Self::PhaseNotPresentAtBothTerminals { branch, phase } => {
-                write!(f, "branch {branch} phase {phase:?} is not present at both terminals")
+                write!(
+                    f,
+                    "branch {branch} phase {phase:?} is not present at both terminals"
+                )
             }
             Self::SwitchPositionRequired(id) => {
                 write!(f, "switch branch {id} requires an explicit switch position")
