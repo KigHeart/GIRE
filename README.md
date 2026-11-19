@@ -19,6 +19,8 @@ authority.
   terminals and explicit two-winding transformer models.
 - `gire-electrical`: SI-unit line/cable conductor data and per-unit
   transformer sequence parameters, validated against an equipment revision.
+- `gire-operating-point`: version-pinned per-phase source voltages, constant-P/Q
+  load observations, and explicit transformer tap states with evidence quality.
 
 ## Development sequence
 
@@ -27,9 +29,10 @@ authority.
 3. Versioned feeder topology and connectivity validation.
 4. Explicit electrical equipment and transformer semantics.
 5. Electrical parameter validation and coverage.
-6. Deterministic three-phase unbalanced analysis, only when required source,
+6. Version-pinned operating-point inputs and observation quality.
+7. Deterministic three-phase unbalanced analysis, only when required source,
    load, topology and parameter data are present.
-7. Bounded agents and a policy/authority kernel.
+8. Bounded agents and a policy/authority kernel.
 
 ## Local development
 
