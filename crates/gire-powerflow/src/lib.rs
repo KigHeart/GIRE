@@ -3,9 +3,13 @@
 //! This narrow kernel accepts an assembled single-phase series-impedance tree.
 //! It does not infer topology, validate upstream evidence, model shunts,
 //! mutual coupling, transformers, neutral return, or issue equipment controls.
-//! Callers must perform those checks before invoking the solver.
+//! Use `prepare_radial_feeder` for cross-layer validation and conversion;
+//! `solve_radial` remains the low-level numerical kernel.
 mod adapter;
-pub use adapter::{prepare_radial_feeder, AdapterError, PreparedRadialFeeder, PowerFlowProvenance, ValidatedPowerFlowResult};
+pub use adapter::{
+    AdapterError, PowerFlowProvenance, PreparedRadialFeeder, ValidatedPowerFlowResult,
+    prepare_radial_feeder,
+};
 
 use gire_domain::TerminalId;
 use serde::{Deserialize, Serialize};
