@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["crates/gire-domain"]
+members = ["crates/gire-domain", "crates/gire-evidence"]
 
 [workspace.package]
 edition = "2024"
@@ -10,4 +10,6 @@ repository = "https://github.com/KigHeart/GIRE"
 
 [workspace.dependencies]
 serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+sha2 = "0.10"
 uuid = { version = "1.16", features = ["serde", "v4"] }
