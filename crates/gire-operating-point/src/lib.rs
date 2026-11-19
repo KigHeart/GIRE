@@ -78,9 +78,14 @@ impl OperatingPoint {
     /// Suspect/estimated values are retained but make the point ineligible
     /// for deterministic solver execution.
     pub fn validate_against(&self, equipment: &EquipmentModel) -> Result<(), OperatingPointError> {
-        equipment.validate().map_err(|_| OperatingPointError::InvalidEquipmentModel)?;
-        if self.revision == 0 || self.topology_revision == 0
-            || self.equipment_revision == 0 || self.electrical_parameter_revision == 0 {
+        equipment
+            .validate()
+            .map_err(|_| OperatingPointError::InvalidEquipmentModel)?;
+        if self.revision == 0
+            || self.topology_revision == 0
+            || self.equipment_revision == 0
+            || self.electrical_parameter_revision == 0
+        {
             return Err(OperatingPointError::ZeroRevision);
         }
         if self.equipment_revision != equipment.revision {
@@ -94,38 +99,63 @@ impl OperatingPoint {
         for source in &self.sources {
             validate_terminal_phase(equipment, source.terminal_id, source.phase)?;
             if !source_keys.insert((source.source_id, source.phase)) {
-                return Err(OperatingPointError::DuplicateSourcePhase(source.source_id, source.phase));
+                return Err(OperatingPointError::DuplicateSourcePhase(
+                    source.source_id,
+                    source.phase,
+                ));
             }
             if !source.voltage_magnitude_volts_rms.is_finite()
                 || source.voltage_magnitude_volts_rms <= 0.0
                 || !source.voltage_angle_degrees.is_finite()
             {
-                return Err(OperatingPointError::InvalidSourceVoltage(source.source_id, source.phase));
+                return Err(OperatingPointError::InvalidSourceVoltage(
+                    source.source_id,
+                    source.phase,
+                ));
             }
-            validate_observation(source.quality, source.observed_at_unix_ms, source.evidence_id)?;
-            if source.observed_at_unix_ms > self.as_of_unix_ms { return Err(OperatingPointError::ObservationAfterSnapshot); }
+            validate_observation(
+                source.quality,
+                source.observed_at_unix_ms,
+                source.evidence_id,
+            )?;
+            if source.observed_at_unix_ms > self.as_of_unix_ms {
+                return Err(OperatingPointError::ObservationAfterSnapshot);
+            }
         }
 
         let mut load_keys = BTreeSet::new();
         for load in &self.loads {
             validate_terminal_phase(equipment, load.terminal_id, load.phase)?;
             if !load_keys.insert((load.load_id, load.phase)) {
-                return Err(OperatingPointError::DuplicateLoadPhase(load.load_id, load.phase));
+                return Err(OperatingPointError::DuplicateLoadPhase(
+                    load.load_id,
+                    load.phase,
+                ));
             }
             if !load.active_power_watts.is_finite() || !load.reactive_power_vars.is_finite() {
-                return Err(OperatingPointError::InvalidLoadPower(load.load_id, load.phase));
+                return Err(OperatingPointError::InvalidLoadPower(
+                    load.load_id,
+                    load.phase,
+                ));
             }
             validate_observation(load.quality, load.observed_at_unix_ms, load.evidence_id)?;
-            if load.observed_at_unix_ms > self.as_of_unix_ms { return Err(OperatingPointError::ObservationAfterSnapshot); }
+            if load.observed_at_unix_ms > self.as_of_unix_ms {
+                return Err(OperatingPointError::ObservationAfterSnapshot);
+            }
         }
 
         let mut tap_ids: Vec<(AssetId, WindingSide)> = Vec::new();
         for tap in &self.transformer_taps {
-            let transformer = equipment.transformers.iter()
+            let transformer = equipment
+                .transformers
+                .iter()
                 .find(|item| item.id == tap.transformer_id)
                 .ok_or(OperatingPointError::UnknownTransformer(tap.transformer_id))?;
             if tap_ids.contains(&(tap.transformer_id, tap.winding_side)) {
-                return Err(OperatingPointError::DuplicateTapState(tap.transformer_id, tap.winding_side));
+                return Err(OperatingPointError::DuplicateTapState(
+                    tap.transformer_id,
+                    tap.winding_side,
+                ));
             }
             tap_ids.push((tap.transformer_id, tap.winding_side));
             if tap.minimum_position > tap.neutral_position
@@ -145,7 +175,9 @@ impl OperatingPoint {
                 return Err(OperatingPointError::InvalidTapWinding(tap.transformer_id));
             }
             validate_observation(tap.quality, tap.observed_at_unix_ms, tap.evidence_id)?;
-            if tap.observed_at_unix_ms > self.as_of_unix_ms { return Err(OperatingPointError::ObservationAfterSnapshot); }
+            if tap.observed_at_unix_ms > self.as_of_unix_ms {
+                return Err(OperatingPointError::ObservationAfterSnapshot);
+            }
         }
         Ok(())
     }
@@ -154,9 +186,18 @@ impl OperatingPoint {
     /// Empty collections are not sufficient: at least one source is required.
     pub fn is_solver_eligible(&self) -> bool {
         !self.sources.is_empty()
-            && self.sources.iter().all(|v| v.quality == MeasurementQuality::Good)
-            && self.loads.iter().all(|v| v.quality == MeasurementQuality::Good)
-            && self.transformer_taps.iter().all(|v| v.quality == MeasurementQuality::Good)
+            && self
+                .sources
+                .iter()
+                .all(|v| v.quality == MeasurementQuality::Good)
+            && self
+                .loads
+                .iter()
+                .all(|v| v.quality == MeasurementQuality::Good)
+            && self
+                .transformer_taps
+                .iter()
+                .all(|v| v.quality == MeasurementQuality::Good)
     }
 }
 
@@ -165,10 +206,16 @@ fn validate_terminal_phase(
     terminal_id: TerminalId,
     phase: Phase,
 ) -> Result<(), OperatingPointError> {
-    let terminal = equipment.terminals.iter().find(|item| item.id == terminal_id)
+    let terminal = equipment
+        .terminals
+        .iter()
+        .find(|item| item.id == terminal_id)
         .ok_or(OperatingPointError::UnknownTerminal(terminal_id))?;
     if !matches!(phase, Phase::A | Phase::B | Phase::C) || !terminal.phases.contains(&phase) {
-        return Err(OperatingPointError::PhaseNotPresent { terminal: terminal_id, phase });
+        return Err(OperatingPointError::PhaseNotPresent {
+            terminal: terminal_id,
+            phase,
+        });
     }
     Ok(())
 }
@@ -181,7 +228,10 @@ fn validate_observation(
     if observed_at_unix_ms == 0 || evidence_id.as_uuid().is_nil() {
         return Err(OperatingPointError::InvalidObservationProvenance);
     }
-    if matches!(quality, MeasurementQuality::Bad | MeasurementQuality::Stale | MeasurementQuality::Missing) {
+    if matches!(
+        quality,
+        MeasurementQuality::Bad | MeasurementQuality::Stale | MeasurementQuality::Missing
+    ) {
         return Err(OperatingPointError::UnusableObservation(quality));
     }
     Ok(())
@@ -191,9 +241,15 @@ fn validate_observation(
 pub enum OperatingPointError {
     InvalidEquipmentModel,
     ZeroRevision,
-    EquipmentRevisionMismatch { operating_point: u64, equipment: u64 },
+    EquipmentRevisionMismatch {
+        operating_point: u64,
+        equipment: u64,
+    },
     UnknownTerminal(TerminalId),
-    PhaseNotPresent { terminal: TerminalId, phase: Phase },
+    PhaseNotPresent {
+        terminal: TerminalId,
+        phase: Phase,
+    },
     DuplicateSourcePhase(SourceId, Phase),
     InvalidSourceVoltage(SourceId, Phase),
     DuplicateLoadPhase(AssetId, Phase),
