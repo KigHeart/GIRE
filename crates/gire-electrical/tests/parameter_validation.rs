@@ -185,9 +185,7 @@ fn rejects_equipment_revision_mismatch() {
 fn rejects_negative_line_resistance() {
     let equipment = valid_equipment();
     let mut params = valid_parameters(&equipment);
-    params.lines[0].conductors[0]
-        .series
-        .resistance_ohm_per_km = -0.1;
+    params.lines[0].conductors[0].series.resistance_ohm_per_km = -0.1;
     assert!(matches!(
         params.validate_against(&equipment),
         Err(ElectricalParameterError::InvalidSeriesImpedance { .. })

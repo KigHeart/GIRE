@@ -146,7 +146,8 @@ impl ElectricalParameterSet {
                         phase: conductor.phase,
                     });
                 }
-                if !from.phases.contains(&conductor.phase) || !to.phases.contains(&conductor.phase) {
+                if !from.phases.contains(&conductor.phase) || !to.phases.contains(&conductor.phase)
+                {
                     return Err(ElectricalParameterError::ConductorPhaseNotAtBothTerminals {
                         equipment: line.asset_id,
                         phase: conductor.phase,
