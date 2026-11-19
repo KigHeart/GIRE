@@ -1,6 +1,4 @@
-use gire_domain::{
-    AssetId, EvidenceId, FeederId, MeasurementQuality, Phase, SourceId, TerminalId,
-};
+use gire_domain::{AssetId, EvidenceId, FeederId, MeasurementQuality, Phase, SourceId, TerminalId};
 use gire_electrical::{
     ConductorElectricalData, ElectricalParameterSet, LineElectricalParameters,
     SeriesImpedancePerKm, ShuntAdmittancePerKm,
