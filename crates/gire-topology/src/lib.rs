@@ -68,7 +68,8 @@ pub enum BranchConnectivity {
     Unknown,
 }
 
-/// Whether confirmed connectivity is radial, meshed, or uncertain.
+/// Graph cycle classification. Radial means acyclic only; without source and
+/// energization semantics it does not assert a single-source radial feeder.
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum Radiality {

@@ -25,12 +25,13 @@ confirmed connectivity and are surfaced as uncertainty.
 
 The snapshot reports connected components, confirmed-open branches, unknown
 branches, and confirmed cycle edges. Radiality is reported as:
-- **Radial:** no confirmed cycle and no unknown switch on that phase.
+- **Radial:** no confirmed cycle and no unknown switch on that conductor. This is a graph-acyclicity classification (a forest); without source and energization semantics it does not assert a single-source energized radial feeder.
 - **Meshed:** at least one confirmed cycle exists.
 - **Indeterminate:** no confirmed cycle exists, but at least one switch state
   is unknown.
 
-Isolated terminals are retained as one-terminal components. No partial result
+Isolated terminals are retained as one-terminal components. Neutral is
+reconstructed as a separate conductor graph. No partial result
 is returned for an invalid model.
 
 ## Explicit scope limits
