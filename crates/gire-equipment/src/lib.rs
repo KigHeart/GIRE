@@ -112,9 +112,7 @@ impl EquipmentModel {
             if !asset_ids.insert(level.id) || !voltage_ids.insert(level.id) {
                 return Err(EquipmentError::DuplicateAsset(level.id));
             }
-            if !level.nominal_voltage_volts.is_finite()
-                || level.nominal_voltage_volts <= 0.0
-            {
+            if !level.nominal_voltage_volts.is_finite() || level.nominal_voltage_volts <= 0.0 {
                 return Err(EquipmentError::InvalidNominalVoltage(level.id));
             }
             if !substation_ids.contains(&level.substation_id) {
@@ -138,10 +136,8 @@ impl EquipmentModel {
             }
             validate_phases(terminal.equipment_id, &terminal.phases)?;
         }
-        let terminal_by_id: BTreeMap<_, _> =
-            self.terminals.iter().map(|t| (t.id, t)).collect();
-        let voltage_by_id: BTreeMap<_, _> =
-            self.voltage_levels.iter().map(|v| (v.id, v)).collect();
+        let terminal_by_id: BTreeMap<_, _> = self.terminals.iter().map(|t| (t.id, t)).collect();
+        let voltage_by_id: BTreeMap<_, _> = self.voltage_levels.iter().map(|v| (v.id, v)).collect();
 
         for busbar in &self.busbars {
             if !asset_ids.insert(busbar.id) {
@@ -158,9 +154,7 @@ impl EquipmentModel {
             }
             let terminal = terminal_by_id
                 .get(&busbar.terminal_id)
-                .ok_or(EquipmentError::UnknownEquipmentTerminal(
-                    busbar.terminal_id,
-                ))?;
+                .ok_or(EquipmentError::UnknownEquipmentTerminal(busbar.terminal_id))?;
             if terminal.equipment_id != busbar.id
                 || terminal.voltage_level_id != busbar.voltage_level_id
             {
@@ -173,9 +167,7 @@ impl EquipmentModel {
                 return Err(EquipmentError::DuplicateAsset(transformer.id));
             }
             if transformer.vector_group_clock_hour > 11 {
-                return Err(EquipmentError::InvalidVectorGroupClock(
-                    transformer.id,
-                ));
+                return Err(EquipmentError::InvalidVectorGroupClock(transformer.id));
             }
             if !substation_ids.contains(&transformer.substation_id) {
                 return Err(EquipmentError::UnknownSubstation {
@@ -187,16 +179,12 @@ impl EquipmentModel {
                 if !asset_ids.insert(winding.id) {
                     return Err(EquipmentError::DuplicateAsset(winding.id));
                 }
-                if !winding.rated_voltage_volts.is_finite()
-                    || winding.rated_voltage_volts <= 0.0
-                {
+                if !winding.rated_voltage_volts.is_finite() || winding.rated_voltage_volts <= 0.0 {
                     return Err(EquipmentError::InvalidWindingVoltage(winding.id));
                 }
-                let terminal = terminal_by_id
-                    .get(&winding.terminal_id)
-                    .ok_or(EquipmentError::UnknownEquipmentTerminal(
-                        winding.terminal_id,
-                    ))?;
+                let terminal = terminal_by_id.get(&winding.terminal_id).ok_or(
+                    EquipmentError::UnknownEquipmentTerminal(winding.terminal_id),
+                )?;
                 if terminal.equipment_id != transformer.id
                     || terminal.voltage_level_id != winding.voltage_level_id
                     || terminal.phases != winding.phases
